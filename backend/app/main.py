@@ -9,7 +9,7 @@ app = FastAPI(
     debug=settings.app_debug,
 )
 
-app.include_router(api_router, prefix=settings.api_v1_prefix)
+app.include_router(api_router)
 
 
 @app.get("/health")
