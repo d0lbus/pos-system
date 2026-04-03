@@ -1,0 +1,22 @@
+# frontend
+frontend/node_modules
+frontend/dist
+frontend/.env
+
+# backend
+backend/.venv
+backend/__pycache__
+backend/.env
+backend/.pytest_cache
+backend/.mypy_cache
+
+# uploads
+backend/uploads/products/*
+backend/uploads/expenses/*
+!backend/uploads/products/.gitkeep
+!backend/uploads/expenses/.gitkeep
+
+# misc
+.DS_Store
+.vscode
+.idea
