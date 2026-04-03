@@ -1,8 +1,30 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
-app = FastAPI(title="POS System API")
+from app.api.router import api_router
+from app.core.config import settings
+from app.db.session import check_db_connection
+
+app = FastAPI(
+    title=settings.app_name,
+    debug=settings.app_debug,
+)
+
+app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "environment": settings.app_env,
+    }
+
+
+@app.get("/health/db")
+def health_db():
+    try:
+        check_db_connection()
+        return {"status": "ok", "database": "connected"}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {exc}")
