@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     db_ssl_ca: str | None = None
     db_echo: bool = False
 
+    auth_secret_key: str
+    auth_access_token_expire_minutes: int = 480
+    auth_issuer: str = "pos-backend"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
