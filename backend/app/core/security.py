@@ -2,8 +2,91 @@ import base64
 import hashlib
 import hmac
 import secrets
+import json
+import time
+from typing import Any
 
 from app.core.constants import PIN_LENGTH
+from app.core.config import settings
+
+def _b64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("utf-8")
+
+
+def _b64url_decode(value: str) -> bytes:
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
+
+
+def create_access_token(
+    subject: str,
+    extra_claims: dict[str, Any] | None = None,
+    expires_in_minutes: int | None = None,
+) -> str:
+    now = int(time.time())
+    expiry_minutes = expires_in_minutes or settings.auth_access_token_expire_minutes
+
+    header = {
+        "alg": "HS256",
+        "typ": "JWT",
+    }
+
+    payload: dict[str, Any] = {
+        "sub": subject,
+        "iat": now,
+        "exp": now + (expiry_minutes * 60),
+        "iss": settings.auth_issuer,
+    }
+
+    if extra_claims:
+        payload.update(extra_claims)
+
+    encoded_header = _b64url_encode(
+        json.dumps(header, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    )
+    encoded_payload = _b64url_encode(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    )
+
+    signing_input = f"{encoded_header}.{encoded_payload}".encode("utf-8")
+    signature = hmac.new(
+        settings.auth_secret_key.encode("utf-8"),
+        signing_input,
+        hashlib.sha256,
+    ).digest()
+
+    encoded_signature = _b64url_encode(signature)
+    return f"{encoded_header}.{encoded_payload}.{encoded_signature}"
+
+
+def decode_access_token(token: str) -> dict[str, Any]:
+    try:
+        encoded_header, encoded_payload, encoded_signature = token.split(".")
+    except ValueError as exc:
+        raise ValueError("Invalid token structure.") from exc
+
+    signing_input = f"{encoded_header}.{encoded_payload}".encode("utf-8")
+    expected_signature = hmac.new(
+        settings.auth_secret_key.encode("utf-8"),
+        signing_input,
+        hashlib.sha256,
+    ).digest()
+
+    provided_signature = _b64url_decode(encoded_signature)
+
+    if not hmac.compare_digest(expected_signature, provided_signature):
+        raise ValueError("Invalid token signature.")
+
+    payload = json.loads(_b64url_decode(encoded_payload).decode("utf-8"))
+
+    if payload.get("iss") != settings.auth_issuer:
+        raise ValueError("Invalid token issuer.")
+
+    exp = payload.get("exp")
+    if not isinstance(exp, int) or exp < int(time.time()):
+        raise ValueError("Token has expired.")
+
+    return payload
 
 
 PBKDF2_ALGORITHM = "sha256"

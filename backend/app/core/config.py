@@ -10,8 +10,9 @@ class Settings(BaseSettings):
     app_debug: bool = True
     api_v1_prefix: str = "/api/v1"
 
-    secret_key: str
-    access_token_expire_minutes: int = 1440
+    auth_secret_key: str
+    auth_access_token_expire_minutes: int = 1440
+    auth_issuer: str = "pos-backend"
 
     db_host: str
     db_port: int = 3306
