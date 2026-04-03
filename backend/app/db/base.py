@@ -2,6 +2,9 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from app.db.base_class import Base
+from app.models.user import User
+from app.models.audit_log import AuditLog
 
 
 class Base(DeclarativeBase):
